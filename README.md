@@ -30,7 +30,6 @@ styled after a dark, poster-driven streaming-app aesthetic.
 - **Paystack Inline checkout**, with a manual admin confirmation step before
   an order is marked successful
 - **Seller Agreement** that must be explicitly accepted before applying to sell
-
 ## Getting started
 
 ### 1. Create a Supabase project
