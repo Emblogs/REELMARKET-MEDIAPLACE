@@ -1,0 +1,61 @@
+import { useEffect, useState } from 'react';
+import Button from '../../components/ui/Button';
+import Badge from '../../components/ui/Badge';
+import EmptyState from '../../components/ui/EmptyState';
+import { listUsers, setUserStatus } from '../../services/authService';
+
+const STATUS_VARIANT = { active: 'success', suspended: 'warning', banned: 'danger' };
+
+export default function AdminUsers() {
+  const [users, setUsers] = useState([]);
+
+  async function refresh() {
+    const all = await listUsers();
+    setUsers(all.filter((u) => u.role !== 'admin'));
+  }
+  useEffect(() => { refresh(); }, []);
+
+  async function handleStatus(userId, status) {
+    await setUserStatus(userId, status);
+    refresh();
+  }
+
+  return (
+    <div>
+      <div className="admin-panel-header">
+        <h2 className="section-title" style={{ fontSize: '1.5rem' }}>Users</h2>
+      </div>
+
+      {users.length === 0 ? (
+        <EmptyState title="No users yet" />
+      ) : (
+        <div className="table-scroll">
+          <table className="data-table">
+          <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th>Actions</th></tr></thead>
+          <tbody>
+            {users.map((u) => (
+              <tr key={u.id}>
+                <td>{u.name}</td>
+                <td>{u.email}</td>
+                <td style={{ textTransform: 'capitalize' }}>{u.role}</td>
+                <td><Badge variant={STATUS_VARIANT[u.status] || 'neutral'}>{u.status}</Badge></td>
+                <td className="table-actions">
+                  {u.status !== 'active' && (
+                    <Button size="sm" onClick={() => handleStatus(u.id, 'active')}>Reactivate</Button>
+                  )}
+                  {u.status !== 'suspended' && (
+                    <Button size="sm" variant="ghost" onClick={() => handleStatus(u.id, 'suspended')}>Suspend</Button>
+                  )}
+                  {u.status !== 'banned' && (
+                    <Button size="sm" variant="danger" onClick={() => handleStatus(u.id, 'banned')}>Ban</Button>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+                  </table>
+        </div>
+      )}
+    </div>
+  );
+}
