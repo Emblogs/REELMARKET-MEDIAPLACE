@@ -87,15 +87,25 @@
   background: var(--bg-surface);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-lg);
-  padding: 20px;
+  padding: 24px;
 }
+@media (max-width: 480px) {
+  .card { padding: 18px; }
+}
+
+/* ---------- Prose (long-form text blocks: descriptions, agreements, etc.) ---------- */
+.prose { line-height: 1.7; color: var(--text-secondary); }
+.prose p { margin-bottom: 14px; }
+.prose h2, .prose h3 { margin: 24px 0 10px; color: var(--text-primary); }
+.prose ul, .prose ol { margin: 0 0 14px 20px; }
+.prose li { margin-bottom: 6px; }
 
 /* ---------- Form fields ---------- */
 .field {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  margin-bottom: 16px;
+  margin-bottom: 20px;
 }
 .field label {
   font-size: 0.82rem;
@@ -185,7 +195,7 @@
 }
 .data-table th {
   text-align: left;
-  padding: 10px 14px;
+  padding: 12px 16px;
   color: var(--text-muted);
   font-size: 0.72rem;
   text-transform: uppercase;
@@ -193,7 +203,7 @@
   border-bottom: 1px solid var(--border-strong);
 }
 .data-table td {
-  padding: 12px 14px;
+  padding: 14px 16px;
   border-bottom: 1px solid var(--border-subtle);
   vertical-align: middle;
 }
@@ -233,6 +243,13 @@
   opacity: 0.7;
 }
 .toast-close:hover { opacity: 1; }
+.toast-action {
+  color: var(--accent-tracking);
+  font-weight: 700;
+  font-size: 0.82rem;
+  white-space: nowrap;
+  text-decoration: underline;
+}
 @keyframes toast-in {
   from { opacity: 0; transform: translate(-50%, -8px); }
   to { opacity: 1; transform: translate(-50%, 0); }

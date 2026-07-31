@@ -76,7 +76,15 @@
   margin-left: auto;
   flex-shrink: 0;
 }
-.navbar-icon-link { font-size: 1.2rem; position: relative; }
+.navbar-icon-link {
+  font-size: 1.2rem;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  color: var(--text-secondary);
+  transition: color 0.15s ease;
+}
+.navbar-icon-link:hover { color: var(--text-primary); }
 
 .navbar-badge {
   position: absolute;

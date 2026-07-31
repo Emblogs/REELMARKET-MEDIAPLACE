@@ -107,7 +107,10 @@ img { max-width: 100%; display: block; }
   padding: 0 clamp(24px, 5vw, 64px);
 }
 
-.section { padding: 48px 0; }
+.section { padding: 64px 0; }
+@media (max-width: 640px) {
+  .section { padding: 40px 0; }
+}
 
 .eyebrow {
   font-family: var(--font-mono);
@@ -122,7 +125,9 @@ img { max-width: 100%; display: block; }
   font-size: clamp(1.6rem, 3vw, 2.4rem);
   letter-spacing: 0.02em;
   color: var(--text-primary);
-  margin-top: 6px;
+  margin-top: 8px;
+  margin-bottom: 8px;
+  line-height: 1.15;
 }
 
 .grid-posters {

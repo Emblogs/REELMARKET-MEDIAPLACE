@@ -1,8 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import PosterCard from '../components/catalog/PosterCard';
 import Loader from '../components/ui/Loader';
-import Button from '../components/ui/Button';
 import EmptyState from '../components/ui/EmptyState';
 import { fetchByCategory } from '../services/catalogService';
 
@@ -22,40 +21,67 @@ export default function Browse() {
   const [hasMore, setHasMore] = useState(true);
   const meta = CATEGORY_META[category] || { label: category, eyebrow: 'Browse' };
 
+  const sentinelRef = useRef(null);
+  const loadingRef = useRef(false);
+  const hasMoreRef = useRef(true);
+  const pageRef = useRef(1);
+
   useEffect(() => {
     setLoading(true);
     setPage(1);
+    pageRef.current = 1;
     setHasMore(true);
+    hasMoreRef.current = true;
     fetchByCategory(category, 1)
       .then((result) => {
         setItems(result);
         setHasMore(result.length > 0);
+        hasMoreRef.current = result.length > 0;
       })
       .finally(() => setLoading(false));
   }, [category]);
 
-  function handleLoadMore() {
-    const nextPage = page + 1;
+  const loadNext = useCallback(async () => {
+    if (loadingRef.current || !hasMoreRef.current) return;
+    loadingRef.current = true;
     setLoadingMore(true);
-    fetchByCategory(category, nextPage)
-      .then(async (result) => {
-        if (result.length === 0) {
-          // A single empty response could be a transient rate-limit hiccup
-          // rather than truly "no more pages" — try once more before giving up.
-          const retry = await fetchByCategory(category, nextPage);
-          if (retry.length === 0) {
-            setHasMore(false);
-            return;
-          }
-          setItems((prev) => [...prev, ...retry]);
-          setPage(nextPage);
-          return;
-        }
+    const nextPage = pageRef.current + 1;
+    try {
+      let result = await fetchByCategory(category, nextPage);
+      if (result.length === 0) {
+        // A single empty response could be a transient rate-limit hiccup
+        // rather than truly "no more pages" — try once more before giving up.
+        result = await fetchByCategory(category, nextPage);
+      }
+      if (result.length === 0) {
+        hasMoreRef.current = false;
+        setHasMore(false);
+      } else {
         setItems((prev) => [...prev, ...result]);
+        pageRef.current = nextPage;
         setPage(nextPage);
-      })
-      .finally(() => setLoadingMore(false));
-  }
+      }
+    } finally {
+      loadingRef.current = false;
+      setLoadingMore(false);
+    }
+  }, [category]);
+
+  // Infinite scroll: load the next page automatically as the person nears
+  // the bottom of the grid, instead of requiring a "Load more" click.
+  useEffect(() => {
+    const sentinel = sentinelRef.current;
+    if (!sentinel) return undefined;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) loadNext();
+      },
+      { rootMargin: '600px 0px', threshold: 0 }
+    );
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [loadNext]);
 
   return (
     <div className="container section">
@@ -92,11 +118,17 @@ export default function Browse() {
           </div>
 
           {hasMore && (
-            <div style={{ display: 'flex', justifyContent: 'center', marginTop: 32 }}>
-              <Button variant="secondary" onClick={handleLoadMore} disabled={loadingMore}>
-                {loadingMore ? 'Loading…' : 'Load more'}
-              </Button>
-            </div>
+            <div ref={sentinelRef} style={{ height: 1 }} aria-hidden="true" />
+          )}
+          {loadingMore && (
+            <p style={{ textAlign: 'center', marginTop: 24, color: 'var(--text-muted)', fontSize: '0.85rem', fontFamily: 'var(--font-mono)' }}>
+              Loading more…
+            </p>
+          )}
+          {!hasMore && (
+            <p style={{ textAlign: 'center', marginTop: 32, color: 'var(--text-muted)', fontSize: '0.8rem' }}>
+              You've reached the end.
+            </p>
           )}
         </>
       )}

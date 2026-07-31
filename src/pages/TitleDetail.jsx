@@ -4,6 +4,7 @@ import PosterCard from '../components/catalog/PosterCard';
 import Badge from '../components/ui/Badge';
 import Button from '../components/ui/Button';
 import Loader from '../components/ui/Loader';
+import Toast from '../components/ui/Toast';
 import { getTitleById, fetchByCategory } from '../services/catalogService';
 import { ensureDefaultListing } from '../services/listingsService';
 import { getFranchises } from '../data/seed';
@@ -35,6 +36,8 @@ export default function TitleDetail() {
   const [recommendations, setRecommendations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState('overview');
+  const [quantities, setQuantities] = useState({});
+  const [toast, setToast] = useState('');
 
   useEffect(() => {
     let cancelled = false;
@@ -69,19 +72,29 @@ export default function TitleDetail() {
 
   const franchise = useMemo(() => findFranchise(item), [item]);
 
+  function getQuantity(listing) {
+    return quantities[listing.id] || 1;
+  }
+
+  function setQuantity(listing, value) {
+    const clamped = Math.max(1, Math.min(Number(value) || 1, listing.stock));
+    setQuantities((q) => ({ ...q, [listing.id]: clamped }));
+  }
+
   async function handleBuy(listing) {
     if (!isAuthenticated) {
       navigate('/login');
       return;
     }
+    const quantity = getQuantity(listing);
     await addToCart({
       userId: user.id,
       listingId: listing.id,
       titleSnapshot: listing.titleSnapshot,
       price: listing.price,
-      quantity: 1,
+      quantity,
     });
-    navigate('/cart');
+    setToast(`Added ${quantity} × ${listing.titleSnapshot?.title || item.title} to your cart.`);
   }
 
   if (loading) return <div className="container section"><Loader /></div>;
@@ -95,6 +108,7 @@ export default function TitleDetail() {
 
   return (
     <div>
+      <Toast message={toast} variant="success" onDismiss={() => setToast('')} actionLabel="View cart" actionTo="/cart" />
       <div className="hero-banner" style={{ minHeight: 320 }}>
         <div
           className="hero-banner-bg"
@@ -171,7 +185,7 @@ export default function TitleDetail() {
 
             {tab === 'overview' && (
               <div>
-                <p style={{ color: 'var(--text-secondary)', marginBottom: 16 }}>{item.description}</p>
+                <p className="prose" style={{ marginBottom: 16 }}>{item.description}</p>
 
                 {item.genreNames?.length > 0 && (
                   <div className="pill-tabs" style={{ marginBottom: 16 }}>
@@ -296,10 +310,29 @@ export default function TitleDetail() {
                     {trust && trust.score === null && <Badge variant="neutral">New Seller</Badge>}
                   </div>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
                   <span style={{ fontFamily: 'var(--font-mono)', fontSize: '1.1rem', color: 'var(--accent-gold)' }}>
                     {formatNaira(listing.price)}
                   </span>
+                  {listing.stock > 0 && (
+                    <input
+                      type="number"
+                      min={1}
+                      max={listing.stock}
+                      value={getQuantity(listing)}
+                      onChange={(e) => setQuantity(listing, e.target.value)}
+                      aria-label="Quantity"
+                      style={{
+                        width: 56,
+                        background: 'var(--bg-surface-2)',
+                        border: '1px solid var(--border-strong)',
+                        borderRadius: 6,
+                        color: 'var(--text-primary)',
+                        padding: '8px 6px',
+                        textAlign: 'center',
+                      }}
+                    />
+                  )}
                   <Button
                     variant="primary"
                     disabled={listing.stock === 0}
