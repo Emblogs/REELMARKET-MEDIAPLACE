@@ -207,6 +207,12 @@
 }
 .hero-dot.active { background: var(--accent-marquee); width: 26px; border-radius: 4px; }
 
+@media (max-width: 640px) {
+  .hero-banner { min-height: 360px; }
+  .hero-banner-content { padding: 28px 20px 32px; max-width: 100%; }
+  .hero-banner-subtitle { max-width: 100%; }
+}
+
 /* ---------- Unified pill-tab system (used for categories AND franchise tabs) ---------- */
 .pill-tabs {
   display: flex;

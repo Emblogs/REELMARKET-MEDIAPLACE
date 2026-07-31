@@ -4,7 +4,8 @@ import Button from '../../components/ui/Button';
 import EmptyState from '../../components/ui/EmptyState';
 import { searchAll } from '../../services/catalogService';
 import { createListing, getAllListings, removeListing } from '../../services/listingsService';
-import { formatNaira } from '../../utils/format';
+import { logActivity, getMyActivity } from '../../services/activityLogService';
+import { formatNaira, formatDate } from '../../utils/format';
 
 export default function StaffPanel() {
   const { user } = useAuth();
@@ -14,10 +15,12 @@ export default function StaffPanel() {
   const [price, setPrice] = useState('');
   const [stock, setStock] = useState(1);
   const [items, setItems] = useState([]);
+  const [myActivity, setMyActivity] = useState([]);
 
   async function refresh() {
     const all = await getAllListings();
     setItems(all.filter((l) => l.status === 'approved'));
+    setMyActivity(await getMyActivity(user.id));
   }
   useEffect(() => { refresh(); }, []);
 
@@ -40,11 +43,30 @@ export default function StaffPanel() {
       stock: Number(stock),
       availability: 'sale',
     });
+    await logActivity({
+      actorId: user.id,
+      actorName: user.name,
+      actorRole: 'staff',
+      action: 'add_item',
+      detail: `Added "${selected.title}" — ₦${price} × ${stock} in stock`,
+    });
     setSelected(null);
     setPrice('');
     setStock(1);
     setResults([]);
     setQuery('');
+    refresh();
+  }
+
+  async function handleRemove(item) {
+    await removeListing(item.id);
+    await logActivity({
+      actorId: user.id,
+      actorName: user.name,
+      actorRole: 'staff',
+      action: 'remove_item',
+      detail: `Removed "${item.titleSnapshot?.title}"`,
+    });
     refresh();
   }
 
@@ -113,12 +135,35 @@ export default function StaffPanel() {
                 <td>{formatNaira(l.price)}</td>
                 <td>{l.stock}</td>
                 <td>
-                  <Button size="sm" variant="danger" onClick={async () => { await removeListing(l.id); refresh(); }}>Remove</Button>
+                  <Button size="sm" variant="danger" onClick={() => handleRemove(l)}>Remove</Button>
                 </td>
               </tr>
             ))}
           </tbody>
                   </table>
+        </div>
+      )}
+
+      <h3 style={{ marginTop: 32, marginBottom: 12 }}>My activity</h3>
+      <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', marginBottom: 12 }}>
+        A private record of actions you've taken. Only you and admins can see this — other staff can't.
+      </p>
+      {myActivity.length === 0 ? (
+        <EmptyState title="No activity yet" />
+      ) : (
+        <div className="table-scroll">
+          <table className="data-table">
+            <thead><tr><th>Action</th><th>Detail</th><th>When</th></tr></thead>
+            <tbody>
+              {myActivity.map((a) => (
+                <tr key={a.id}>
+                  <td style={{ textTransform: 'capitalize' }}>{a.action.replace(/_/g, ' ')}</td>
+                  <td>{a.detail}</td>
+                  <td>{formatDate(a.createdAt)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
     </div>

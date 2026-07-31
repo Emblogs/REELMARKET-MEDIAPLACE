@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import Button from '../components/ui/Button';
 import EmptyState from '../components/ui/EmptyState';
+import Toast from '../components/ui/Toast';
 import { getCartForUser, updateCartQuantity, removeFromCart, clearCartForUser } from '../services/cartService';
 import { createOrder } from '../services/ordersService';
 import { getAllListings } from '../services/listingsService';
@@ -14,7 +15,9 @@ export default function Cart() {
   const navigate = useNavigate();
   const [items, setItems] = useState([]);
   const [paying, setPaying] = useState(false);
+  const [confirming, setConfirming] = useState(false);
   const [error, setError] = useState('');
+  const [toast, setToast] = useState('');
 
   async function refresh() {
     if (user) setItems(await getCartForUser(user.id));
@@ -45,6 +48,9 @@ export default function Cart() {
       metadata: { userId: user.id, itemCount: items.length },
       onSuccess: async (response) => {
         try {
+          setPaying(false);
+          setConfirming(true);
+
           const listings = await getAllListings();
           for (const cartItem of items) {
             const listing = listings.find((l) => l.id === cartItem.listingId);
@@ -62,11 +68,20 @@ export default function Cart() {
             });
           }
           await clearCartForUser(user.id);
-          setPaying(false);
-          navigate('/account?tab=orders');
+
+          // Brief "confirming payment" beat before the success notification —
+          // mirrors what a real payment confirmation would feel like, rather
+          // than an instant jump to "done".
+          await new Promise((resolve) => setTimeout(resolve, 1400));
+
+          setConfirming(false);
+          setToast(`Payment confirmed! Your order${items.length > 1 ? 's are' : ' is'} complete.`);
+
+          setTimeout(() => navigate('/account?tab=orders'), 1800);
         } catch (err) {
           setError(err.message);
           setPaying(false);
+          setConfirming(false);
         }
       },
       onClose: () => setPaying(false),
@@ -78,6 +93,7 @@ export default function Cart() {
 
   return (
     <div className="container section">
+      <Toast message={toast} variant="success" onDismiss={() => setToast('')} />
       <span className="eyebrow">Checkout</span>
       <h1 className="section-title" style={{ marginBottom: 24 }}>Your cart</h1>
 
@@ -116,11 +132,11 @@ export default function Cart() {
               <strong style={{ fontFamily: 'var(--font-mono)' }}>{formatNaira(total)}</strong>
             </p>
             {error && <p className="field-error" style={{ marginBottom: 12 }}>{error}</p>}
-            <Button style={{ width: '100%' }} disabled={paying} onClick={handleCheckout}>
-              {paying ? 'Opening Paystack…' : 'Pay with Paystack'}
+            <Button style={{ width: '100%' }} disabled={paying || confirming} onClick={handleCheckout}>
+              {paying ? 'Opening Paystack…' : confirming ? 'Confirming payment…' : 'Pay with Paystack'}
             </Button>
             <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 10 }}>
-              After payment, your order will show as "pending confirmation" until an admin verifies it.
+              You'll get a confirmation the moment your payment goes through — no waiting on admin approval.
             </p>
           </div>
         </div>

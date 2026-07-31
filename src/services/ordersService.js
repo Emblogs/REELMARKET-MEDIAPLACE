@@ -25,16 +25,24 @@ function mapRow(row) {
 }
 
 /**
- * Order lifecycle: pending_confirmation -> confirmed | rejected.
+ * Order lifecycle: confirmed | rejected (auto-confirmed on successful
+ * Paystack checkout — see note below).
  *
  * NOTE (production limitation, carried over from the localStorage version):
  * there is still no server-side verification of the Paystack transaction
  * reference against Paystack's own API — that would need a small backend
- * or Supabase Edge Function calling Paystack with the secret key. The admin
- * "confirm" step remains a manual stand-in for that missing check. What HAS
- * improved: only an admin session can actually flip an order's status now
- * (enforced by Postgres RLS, not just hidden UI), so a buyer or seller can
- * never confirm their own order by calling the API directly.
+ * or Supabase Edge Function calling Paystack with the secret key.
+ *
+ * DEMO BEHAVIOR: since this is a demo project (not processing real money),
+ * orders are auto-confirmed the moment Paystack's client-side callback
+ * fires, instead of sitting in "pending confirmation" until an admin
+ * manually checks each one. The buyer sees a "payment confirmed" toast
+ * right after checkout instead of waiting on staff. Admins can still
+ * manually reject an order afterwards (e.g. to simulate a refund/dispute)
+ * from the Orders panel — that path is untouched and still admin-only via
+ * RLS. Before handling real payments, swap this back to
+ * `status: 'pending_confirmation'` and verify server-side before trusting
+ * any payment.
  */
 export async function createOrder({
   buyerId,
@@ -62,7 +70,8 @@ export async function createOrder({
       total_amount: totalAmount,
       currency: 'NGN',
       paystack_reference: paystackReference,
-      status: 'pending_confirmation',
+      status: 'confirmed',
+      confirmed_at: new Date().toISOString(),
     })
     .select()
     .single();

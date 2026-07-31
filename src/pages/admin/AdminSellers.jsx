@@ -1,15 +1,42 @@
 import { useEffect, useState } from 'react';
+import { useAuth } from '../../context/AuthContext';
 import Button from '../../components/ui/Button';
 import Badge from '../../components/ui/Badge';
 import EmptyState from '../../components/ui/EmptyState';
 import { getAllApplications, approveApplication, rejectApplication } from '../../services/sellerService';
+import { logActivity } from '../../services/activityLogService';
 import { formatDate } from '../../utils/format';
 
 export default function AdminSellers() {
+  const { user } = useAuth();
   const [apps, setApps] = useState([]);
 
   async function refresh() { setApps(await getAllApplications()); }
   useEffect(() => { refresh(); }, []);
+
+  async function handleApprove(app) {
+    await approveApplication(app.id, app.userId);
+    await logActivity({
+      actorId: user.id,
+      actorName: user.name,
+      actorRole: user.role,
+      action: 'approve_seller',
+      detail: `Approved seller application from ${app.userName} (${app.userEmail})`,
+    });
+    refresh();
+  }
+
+  async function handleReject(app) {
+    await rejectApplication(app.id);
+    await logActivity({
+      actorId: user.id,
+      actorName: user.name,
+      actorRole: user.role,
+      action: 'reject_seller',
+      detail: `Rejected seller application from ${app.userName} (${app.userEmail})`,
+    });
+    refresh();
+  }
 
   const pending = apps.filter((a) => a.status === 'pending');
   const resolved = apps.filter((a) => a.status !== 'pending');
@@ -35,8 +62,8 @@ export default function AdminSellers() {
                 <td style={{ maxWidth: 260 }}>{a.message || '—'}</td>
                 <td>{formatDate(a.createdAt)}</td>
                 <td className="table-actions">
-                  <Button size="sm" onClick={async () => { await approveApplication(a.id, a.userId); refresh(); }}>Approve</Button>
-                  <Button size="sm" variant="danger" onClick={async () => { await rejectApplication(a.id); refresh(); }}>Reject</Button>
+                  <Button size="sm" onClick={() => handleApprove(a)}>Approve</Button>
+                  <Button size="sm" variant="danger" onClick={() => handleReject(a)}>Reject</Button>
                 </td>
               </tr>
             ))}

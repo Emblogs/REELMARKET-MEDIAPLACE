@@ -52,6 +52,25 @@ export async function verifyEmailOtp(email, token) {
   return data.session;
 }
 
+/**
+ * Customer sign-up with a real password. Supabase creates the auth.users
+ * row, and the `on_auth_user_created` trigger creates the matching
+ * `profiles` row (defaulted to role 'buyer') automatically.
+ *
+ * NOTE: if "Confirm email" is turned on in Supabase Auth settings, `session`
+ * will come back null here — the account exists but can't sign in until the
+ * person clicks the confirmation link. The Signup page handles that case.
+ */
+export async function signUpWithPassword(email, password, name) {
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: { data: { name } },
+  });
+  if (error) throw error;
+  return data.session; // null if email confirmation is required
+}
+
 /** Staff/admin sign-in — these accounts use a real password, not OTP. */
 export async function signInWithPassword(email, password) {
   const { data, error } = await supabase.auth.signInWithPassword({ email, password });

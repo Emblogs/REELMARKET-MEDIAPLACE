@@ -71,8 +71,8 @@ export default function Navbar() {
     <header className="navbar">
       <div className="container navbar-inner">
         <Link to="/" className="navbar-logo">
-          <img src={logoMark} alt="" className="navbar-logo-mark" />
-          REEL<span>MARKET</span>
+          <img src={logoMark} alt="ReelMarket" className="navbar-logo-mark" />
+          <span className="navbar-logo-text">REEL<span>MARKET</span></span>
         </Link>
 
         <nav className={`navbar-links ${menuOpen ? 'open' : ''}`}>
@@ -134,9 +134,14 @@ export default function Navbar() {
               </div>
             </div>
           ) : (
-            <Link to="/login">
-              <button className="btn btn-primary btn-sm">Sign in</button>
-            </Link>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <Link to="/login">
+                <button className="btn btn-ghost btn-sm">Sign in</button>
+              </Link>
+              <Link to="/signup">
+                <button className="btn btn-primary btn-sm">Sign up</button>
+              </Link>
+            </div>
           )}
 
           <button

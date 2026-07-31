@@ -1,17 +1,44 @@
 import { useEffect, useState } from 'react';
+import { useAuth } from '../../context/AuthContext';
 import Button from '../../components/ui/Button';
 import Badge from '../../components/ui/Badge';
 import EmptyState from '../../components/ui/EmptyState';
 import { getAllOrders, confirmOrder, rejectOrder } from '../../services/ordersService';
+import { logActivity } from '../../services/activityLogService';
 import { formatNaira, formatDate } from '../../utils/format';
 
 const STATUS_VARIANT = { pending_confirmation: 'warning', confirmed: 'success', rejected: 'danger' };
 
 export default function AdminOrders() {
+  const { user } = useAuth();
   const [orders, setOrders] = useState([]);
 
   async function refresh() { setOrders(await getAllOrders()); }
   useEffect(() => { refresh(); }, []);
+
+  async function handleConfirm(order) {
+    await confirmOrder(order.id);
+    await logActivity({
+      actorId: user.id,
+      actorName: user.name,
+      actorRole: user.role,
+      action: 'confirm_order',
+      detail: `Confirmed order for "${order.titleSnapshot?.title}" (${formatNaira(order.totalAmount)}, buyer ${order.buyerName})`,
+    });
+    refresh();
+  }
+
+  async function handleReject(order) {
+    await rejectOrder(order.id);
+    await logActivity({
+      actorId: user.id,
+      actorName: user.name,
+      actorRole: user.role,
+      action: 'reject_order',
+      detail: `Rejected order for "${order.titleSnapshot?.title}" (${formatNaira(order.totalAmount)}, buyer ${order.buyerName})`,
+    });
+    refresh();
+  }
 
   const pending = orders.filter((o) => o.status === 'pending_confirmation');
   const resolved = orders.filter((o) => o.status !== 'pending_confirmation');
@@ -22,8 +49,9 @@ export default function AdminOrders() {
         <h2 className="section-title" style={{ fontSize: '1.5rem' }}>Orders</h2>
       </div>
       <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: 20 }}>
-        Buyers see "pending confirmation" immediately after paying via Paystack. Confirm here once you've
-        verified the transaction reference, and the buyer's order will show as successful.
+        Orders are auto-confirmed the moment Paystack checkout succeeds — buyers get an instant
+        confirmation instead of waiting on approval. Anything below is either a legacy order from
+        before this changed, or one you've manually rejected (e.g. to simulate a refund/dispute).
       </p>
 
       <h3 style={{ marginBottom: 12 }}>Awaiting confirmation ({pending.length})</h3>
@@ -41,8 +69,8 @@ export default function AdminOrders() {
                 <td>{formatNaira(o.totalAmount)}</td>
                 <td style={{ fontFamily: 'var(--font-mono)', fontSize: '0.78rem' }}>{o.paystackReference}</td>
                 <td className="table-actions">
-                  <Button size="sm" onClick={async () => { await confirmOrder(o.id); refresh(); }}>Confirm payment</Button>
-                  <Button size="sm" variant="danger" onClick={async () => { await rejectOrder(o.id); refresh(); }}>Reject</Button>
+                  <Button size="sm" onClick={() => handleConfirm(o)}>Confirm payment</Button>
+                  <Button size="sm" variant="danger" onClick={() => handleReject(o)}>Reject</Button>
                 </td>
               </tr>
             ))}

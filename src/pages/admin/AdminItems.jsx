@@ -12,6 +12,7 @@ import {
   rejectListing,
   removeListing,
 } from '../../services/listingsService';
+import { logActivity } from '../../services/activityLogService';
 import { formatNaira } from '../../utils/format';
 
 export default function AdminItems() {
@@ -51,11 +52,54 @@ export default function AdminItems() {
       stock: Number(stock),
       availability: 'sale',
     });
+    await logActivity({
+      actorId: user.id,
+      actorName: user.name,
+      actorRole: user.role,
+      action: 'add_item',
+      detail: `Added "${selected.title}" — ₦${price} × ${stock} in stock`,
+    });
     setSelected(null);
     setPrice('');
     setStock(1);
     setResults([]);
     setQuery('');
+    refresh();
+  }
+
+  async function handleApprove(listing) {
+    await approveListing(listing.id);
+    await logActivity({
+      actorId: user.id,
+      actorName: user.name,
+      actorRole: user.role,
+      action: 'approve_listing',
+      detail: `Approved "${listing.titleSnapshot?.title}" from seller ${listing.sellerName}`,
+    });
+    refresh();
+  }
+
+  async function handleReject(listing) {
+    await rejectListing(listing.id);
+    await logActivity({
+      actorId: user.id,
+      actorName: user.name,
+      actorRole: user.role,
+      action: 'reject_listing',
+      detail: `Rejected "${listing.titleSnapshot?.title}" from seller ${listing.sellerName}`,
+    });
+    refresh();
+  }
+
+  async function handleRemove(listing) {
+    await removeListing(listing.id);
+    await logActivity({
+      actorId: user.id,
+      actorName: user.name,
+      actorRole: user.role,
+      action: 'remove_item',
+      detail: `Removed "${listing.titleSnapshot?.title}"`,
+    });
     refresh();
   }
 
@@ -122,8 +166,8 @@ export default function AdminItems() {
                 <td>{l.sellerName}</td>
                 <td>{formatNaira(l.price)}</td>
                 <td className="table-actions">
-                  <Button size="sm" onClick={async () => { await approveListing(l.id); refresh(); }}>Approve</Button>
-                  <Button size="sm" variant="danger" onClick={async () => { await rejectListing(l.id); refresh(); }}>Reject</Button>
+                  <Button size="sm" onClick={() => handleApprove(l)}>Approve</Button>
+                  <Button size="sm" variant="danger" onClick={() => handleReject(l)}>Reject</Button>
                 </td>
               </tr>
             ))}
@@ -147,7 +191,7 @@ export default function AdminItems() {
                 <td>{formatNaira(l.price)}</td>
                 <td>{l.stock}</td>
                 <td>
-                  <Button size="sm" variant="danger" onClick={async () => { await removeListing(l.id); refresh(); }}>Remove</Button>
+                  <Button size="sm" variant="danger" onClick={() => handleRemove(l)}>Remove</Button>
                 </td>
               </tr>
             ))}

@@ -11,6 +11,7 @@
   align-items: center;
   gap: 24px;
   height: 68px;
+  min-width: 0;
 }
 .navbar-logo {
   font-family: var(--font-display);
@@ -21,10 +22,12 @@
   display: flex;
   align-items: center;
   gap: 8px;
+  flex-shrink: 0;
 }
 .navbar-logo-mark {
   height: 34px;
   width: auto;
+  flex-shrink: 0;
 }
 .navbar-logo span { color: var(--accent-marquee); }
 
@@ -71,6 +74,7 @@
   align-items: center;
   gap: 16px;
   margin-left: auto;
+  flex-shrink: 0;
 }
 .navbar-icon-link { font-size: 1.2rem; position: relative; }
 
@@ -172,6 +176,20 @@
   }
   .navbar-links.open a { padding: 10px 0; }
   .navbar-links.open .navbar-search-mobile-wrap { display: block; margin-bottom: 8px; }
+}
+
+/* Below this width the logo + cart + auth buttons + burger genuinely don't
+   fit on one line — free up space by dropping the gaps and, at the
+   narrowest widths, the wordmark text (the icon alone still reads as the
+   brand). This is what was causing the horizontal overflow/"shifty" feel
+   on phones. */
+@media (max-width: 560px) {
+  .navbar-inner { gap: 12px; }
+  .navbar-actions { gap: 10px; }
+  .navbar-actions > div { gap: 6px !important; }
+}
+@media (max-width: 420px) {
+  .navbar-logo-text { display: none; }
 }
 
 .navbar-search-mobile-wrap { display: none; }

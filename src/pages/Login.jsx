@@ -9,44 +9,29 @@ export default function Login() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const [step, setStep] = useState('start'); // 'start' | 'code'
-  const [email, setEmail] = useState('');
-  const [code, setCode] = useState('');
+  const [form, setForm] = useState({ email: '', password: '' });
   const [error, setError] = useState('');
-  const [info, setInfo] = useState('');
   const [submitting, setSubmitting] = useState(false);
+
+  function handleChange(e) {
+    setForm((f) => ({ ...f, [e.target.name]: e.target.value }));
+  }
 
   async function handleGoogle() {
     setError('');
     try {
       await authService.signInWithGoogle();
-      // Browser redirects to Google and back — nothing more to do here.
     } catch (err) {
       setError(err.message);
     }
   }
 
-  async function handleSendCode(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
     setError('');
     setSubmitting(true);
     try {
-      await authService.sendEmailOtp(email);
-      setInfo(`We sent a 6-digit code to ${email}.`);
-      setStep('code');
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setSubmitting(false);
-    }
-  }
-
-  async function handleVerifyCode(e) {
-    e.preventDefault();
-    setError('');
-    setSubmitting(true);
-    try {
-      await authService.verifyEmailOtp(email, code);
+      await authService.signInWithPassword(form.email, form.password);
       await refresh();
       const redirectTo = location.state?.from?.pathname;
       navigate(redirectTo || '/');
@@ -71,54 +56,26 @@ export default function Login() {
           <div className="holes"><span /><span /><span /></div>
         </div>
 
-        {step === 'start' && (
-          <form onSubmit={handleSendCode}>
-            <div className="field">
-              <label htmlFor="email">Email</label>
-              <input id="email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
-            </div>
-            {error && <p className="field-error" style={{ marginBottom: 12 }}>{error}</p>}
-            <Button type="submit" disabled={submitting} className="btn-lg" style={{ width: '100%' }}>
-              {submitting ? 'Sending code…' : 'Send me a sign-in code'}
-            </Button>
-            <p style={{ marginTop: 10, color: 'var(--text-muted)', fontSize: '0.78rem' }}>
-              No password needed — we'll email you a 6-digit code. New here? This creates
-              your account automatically.
-            </p>
-          </form>
-        )}
-
-        {step === 'code' && (
-          <form onSubmit={handleVerifyCode}>
-            {info && <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginBottom: 14 }}>{info}</p>}
-            <div className="field">
-              <label htmlFor="code">6-digit code</label>
-              <input
-                id="code"
-                inputMode="numeric"
-                maxLength={6}
-                required
-                value={code}
-                onChange={(e) => setCode(e.target.value)}
-                placeholder="123456"
-              />
-            </div>
-            {error && <p className="field-error" style={{ marginBottom: 12 }}>{error}</p>}
-            <Button type="submit" disabled={submitting} className="btn-lg" style={{ width: '100%' }}>
-              {submitting ? 'Verifying…' : 'Verify & sign in'}
-            </Button>
-            <button
-              type="button"
-              onClick={() => { setStep('start'); setCode(''); setError(''); }}
-              style={{ background: 'none', border: 'none', color: 'var(--accent-tracking)', fontSize: '0.8rem', marginTop: 10 }}
-            >
-              Use a different email
-            </button>
-          </form>
-        )}
+        <form onSubmit={handleSubmit}>
+          <div className="field">
+            <label htmlFor="email">Email</label>
+            <input id="email" name="email" type="email" required value={form.email} onChange={handleChange} />
+          </div>
+          <div className="field">
+            <label htmlFor="password">Password</label>
+            <input id="password" name="password" type="password" required value={form.password} onChange={handleChange} />
+          </div>
+          {error && <p className="field-error" style={{ marginBottom: 12 }}>{error}</p>}
+          <Button type="submit" disabled={submitting} className="btn-lg" style={{ width: '100%' }}>
+            {submitting ? 'Signing in…' : 'Sign in'}
+          </Button>
+        </form>
       </div>
 
       <p style={{ marginTop: 16, color: 'var(--text-muted)', fontSize: '0.78rem' }}>
+        New here? <Link to="/signup" style={{ color: 'var(--accent-tracking)' }}>Create an account</Link>
+      </p>
+      <p style={{ marginTop: 6, color: 'var(--text-muted)', fontSize: '0.78rem' }}>
         ReelMarket staff? <Link to="/staff-login" style={{ color: 'var(--accent-tracking)' }}>Sign in here</Link>
       </p>
     </div>

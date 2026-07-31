@@ -1,12 +1,15 @@
 import { useEffect, useState } from 'react';
+import { useAuth } from '../../context/AuthContext';
 import Button from '../../components/ui/Button';
 import Badge from '../../components/ui/Badge';
 import EmptyState from '../../components/ui/EmptyState';
 import { listUsers, setUserStatus } from '../../services/authService';
+import { logActivity } from '../../services/activityLogService';
 
 const STATUS_VARIANT = { active: 'success', suspended: 'warning', banned: 'danger' };
 
 export default function AdminUsers() {
+  const { user: currentUser } = useAuth();
   const [users, setUsers] = useState([]);
 
   async function refresh() {
@@ -15,8 +18,15 @@ export default function AdminUsers() {
   }
   useEffect(() => { refresh(); }, []);
 
-  async function handleStatus(userId, status) {
-    await setUserStatus(userId, status);
+  async function handleStatus(targetUser, status) {
+    await setUserStatus(targetUser.id, status);
+    await logActivity({
+      actorId: currentUser.id,
+      actorName: currentUser.name,
+      actorRole: currentUser.role,
+      action: 'set_user_status',
+      detail: `Set ${targetUser.name || targetUser.email} to "${status}"`,
+    });
     refresh();
   }
 
@@ -41,13 +51,13 @@ export default function AdminUsers() {
                 <td><Badge variant={STATUS_VARIANT[u.status] || 'neutral'}>{u.status}</Badge></td>
                 <td className="table-actions">
                   {u.status !== 'active' && (
-                    <Button size="sm" onClick={() => handleStatus(u.id, 'active')}>Reactivate</Button>
+                    <Button size="sm" onClick={() => handleStatus(u, 'active')}>Reactivate</Button>
                   )}
                   {u.status !== 'suspended' && (
-                    <Button size="sm" variant="ghost" onClick={() => handleStatus(u.id, 'suspended')}>Suspend</Button>
+                    <Button size="sm" variant="ghost" onClick={() => handleStatus(u, 'suspended')}>Suspend</Button>
                   )}
                   {u.status !== 'banned' && (
-                    <Button size="sm" variant="danger" onClick={() => handleStatus(u.id, 'banned')}>Ban</Button>
+                    <Button size="sm" variant="danger" onClick={() => handleStatus(u, 'banned')}>Ban</Button>
                   )}
                 </td>
               </tr>
