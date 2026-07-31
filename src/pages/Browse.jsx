@@ -21,7 +21,7 @@ export default function Browse() {
   const [hasMore, setHasMore] = useState(true);
   const meta = CATEGORY_META[category] || { label: category, eyebrow: 'Browse' };
 
-  const sentinelRef = useRef(null);
+  const [sentinelNode, setSentinelNode] = useState(null);
   const loadingRef = useRef(false);
   const hasMoreRef = useRef(true);
   const pageRef = useRef(1);
@@ -69,9 +69,16 @@ export default function Browse() {
 
   // Infinite scroll: load the next page automatically as the person nears
   // the bottom of the grid, instead of requiring a "Load more" click.
+  //
+  // IMPORTANT: this depends on `sentinelNode` (state), not a plain ref. The
+  // sentinel element only exists in the DOM once the first page has loaded,
+  // so a plain ref read inside this effect would often be null on the
+  // effect's first (and only, given a stable dependency array) run — the
+  // observer would then never attach to anything and infinite scroll would
+  // silently do nothing. Using a callback ref that stores the node in state
+  // means this effect re-runs the moment the element actually mounts.
   useEffect(() => {
-    const sentinel = sentinelRef.current;
-    if (!sentinel) return undefined;
+    if (!sentinelNode) return undefined;
 
     const observer = new IntersectionObserver(
       (entries) => {
@@ -79,9 +86,9 @@ export default function Browse() {
       },
       { rootMargin: '600px 0px', threshold: 0 }
     );
-    observer.observe(sentinel);
+    observer.observe(sentinelNode);
     return () => observer.disconnect();
-  }, [loadNext]);
+  }, [sentinelNode, loadNext]);
 
   return (
     <div className="container section">
@@ -118,7 +125,7 @@ export default function Browse() {
           </div>
 
           {hasMore && (
-            <div ref={sentinelRef} style={{ height: 1 }} aria-hidden="true" />
+            <div ref={setSentinelNode} style={{ height: 1 }} aria-hidden="true" />
           )}
           {loadingMore && (
             <p style={{ textAlign: 'center', marginTop: 24, color: 'var(--text-muted)', fontSize: '0.85rem', fontFamily: 'var(--font-mono)' }}>

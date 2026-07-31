@@ -107,9 +107,9 @@ img { max-width: 100%; display: block; }
   padding: 0 clamp(24px, 5vw, 64px);
 }
 
-.section { padding: 64px 0; }
+.section { padding-top: 64px; padding-bottom: 64px; }
 @media (max-width: 640px) {
-  .section { padding: 40px 0; }
+  .section { padding-top: 40px; padding-bottom: 40px; }
 }
 
 .eyebrow {
