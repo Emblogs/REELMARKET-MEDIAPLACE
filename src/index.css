@@ -132,14 +132,13 @@ img { max-width: 100%; display: block; }
 
 .grid-posters {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(160px, 190px));
-  justify-content: start;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   gap: 28px 20px;
 }
 
 @media (max-width: 640px) {
   .grid-posters {
-    grid-template-columns: repeat(auto-fill, minmax(120px, 150px));
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
     gap: 16px 12px;
   }
 }
